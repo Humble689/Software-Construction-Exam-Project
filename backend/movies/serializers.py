@@ -1,3 +1,5 @@
+# comment: serializers.py - Defines DRF serializers for Movie, Genre, Person, etc.
+
 from rest_framework import serializers
 from .models import Genre, Person, Movie, MovieCast, WatchProvider
 
