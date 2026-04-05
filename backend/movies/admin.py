@@ -1,3 +1,4 @@
+# comment
 from django.contrib import admin
 from .models import Genre, Person, Movie, MovieCast, WatchProvider
 
