@@ -1,3 +1,4 @@
+// Trending data pipeline fix: corrected state typing and results extraction
 "use client";
 
 import { useState, useEffect } from "react";
