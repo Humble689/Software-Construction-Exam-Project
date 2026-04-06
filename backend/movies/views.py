@@ -1,4 +1,5 @@
 
+
 # comment: views.py - Defines API endpoints for movies, genres, people, and related data.
 import logging
 from rest_framework import viewsets, status
