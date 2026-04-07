@@ -1,3 +1,4 @@
+// API client for CineQuest
 import type {
   MovieCompact,
   MovieDetail,
