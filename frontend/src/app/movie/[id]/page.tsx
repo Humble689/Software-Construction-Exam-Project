@@ -1,6 +1,7 @@
 /* page.tsx */
 "use client";
 
+# getComponentTypeModule
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
@@ -18,6 +19,7 @@ import {
   formatDate, ratingColor,
 } from "@/lib/utils";
 import type { MovieCompact } from "@/types/movie";
+import { getComponentTypeModule } from "next/dist/server/lib/app-dir-module";
 
 function getLikedMovies(): any[] {
   if (typeof window === "undefined") return [];
