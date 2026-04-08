@@ -9,6 +9,8 @@ export interface Genre {
 export interface Person {
   id: number;
   tmdb_id: number;
+
+
   name: string;
   profile_url: string | null;
   known_for_department: string;
