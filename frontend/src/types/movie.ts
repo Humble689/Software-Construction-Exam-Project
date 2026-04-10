@@ -11,6 +11,8 @@ export interface Person {
   tmdb_id: number;
 
 
+
+
   name: string;
   profile_url: string | null;
   known_for_department: string;
