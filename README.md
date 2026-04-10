@@ -409,18 +409,18 @@ MOOD_MAP = {
 
 ## Team Members
 
-| ID | Name | Role |
-|----|----|------|
-| 1 | Team Member 1 | Full Stack Developer |
-| 2 | Team Member 2 | Backend Developer |
-| 3 | Team Member 3 | Frontend Developer |
-| 4 | Team Member 4 | UI/UX Designer |
-| 5 | Team Member 5 | Database Manager |
-| 6 | Team Member 6 | API Integration Specialist |
-| 7 | Team Member 7 | QA/Testing Engineer |
-| 8 | Team Member 8 | DevOps Engineer |
-| 9 | Team Member 9 | Documentation Specialist |
-| 10 | Team Member 10 | Project Manager |
+| Registration No. | Access No. | Student Name | Role |
+|------------------|------------|--------------|------|
+| M24B23/042 | B29146 | ATURINDA Beinembabazi | Full Stack Developer |
+| M24B23/030 | B28330 | KIRABO Daniel | Backend Developer |
+| S24B23/047 | B30104 | MAYINJA Joel | Frontend Developer |
+| S24B23/105 | B30619 | MUTEBI Jonah | UI/UX Designer |
+| S24B23/083 | B28783 | KIRABO Faith | Database Manager |
+| M23B23/012 | B20239 | RUBAGUMYA Alvin | API Integration Specialist |
+| M23B23/001 | B20228 | ABAHO Joy | QA/Testing Engineer |
+| M23B23/027 | B20724 | NKANGI Moses | DevOps Engineer |
+| S23B23/032 | B24263 | LUFENE Mark Travis | Documentation Specialist |
+| M23B23/031 | B20728 | WANGOBI Kakulu Nicholas | Project Manager |
 
 ## License
 
