@@ -1,3 +1,6 @@
+
+
+
 from rest_framework import serializers
 from .models import Genre, Person, Movie, MovieCast, WatchProvider
 
