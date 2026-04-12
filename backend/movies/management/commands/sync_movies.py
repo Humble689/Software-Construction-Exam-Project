@@ -18,8 +18,10 @@ class Command(BaseCommand):
         parser.add_argument("--movie", type=int, default=0, help="Sync a specific movie by TMDB ID")
 
     def handle(self, *args, **options):
+        # Reuse one service instance for all selected sync operations.
         service = MovieSyncService()
 
+        # Options are independent, so multiple flags can run in one command.
         if options["genres"]:
             self.stdout.write("Syncing genres...")
             service.sync_genres()
