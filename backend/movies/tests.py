@@ -596,3 +596,89 @@ class MovieListAPITestCase(APITestCase):
         response = self.client.get("/api/movies/list/9999/")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+
+class GenreListAPITestCase(APITestCase):
+    """Test suite for the genre endpoints."""
+
+    def setUp(self):
+        """Create test genres and movies."""
+        self.genre_action = Genre.objects.create(
+            tmdb_id=28,
+            name="Action",
+            slug="action"
+        )
+        self.genre_drama = Genre.objects.create(
+            tmdb_id=18,
+            name="Drama",
+            slug="drama"
+        )
+        self.movie = Movie.objects.create(
+            tmdb_id=550,
+            title="Fight Club",
+            release_date=date(1999, 10, 15),
+            popularity=86.5
+        )
+        self.movie.genres.add(self.genre_action)
+
+    def test_genre_list_endpoint(self):
+        """
+        Test GET /api/movies/genres/ returns all genres with movie_count.
+
+        Ensures:
+        - Genre list is accessible
+        - All genres are returned
+        - Each genre includes movie_count field
+        - Data is properly serialized
+        """
+        response = self.client.get("/api/movies/genres/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertEqual(len(response.data["results"]), 2)
+
+        # Check first genre has expected fields
+        first_genre = response.data["results"][0]
+        self.assertIn("id", first_genre)
+        self.assertIn("name", first_genre)
+        self.assertIn("slug", first_genre)
+        self.assertIn("movie_count", first_genre)
+
+    def test_genre_detail_endpoint(self):
+        """
+        Test GET /api/movies/genres/{slug}/ returns single genre by slug.
+
+        Ensures:
+        - Genre lookup by slug works correctly
+        - Returns proper genre data
+        """
+        response = self.client.get("/api/movies/genres/action/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["name"], "Action")
+        self.assertEqual(response.data["slug"], "action")
+
+    def test_genre_movies_endpoint(self):
+        """
+        Test GET /api/movies/genres/{slug}/movies/ returns movies for that genre.
+
+        Ensures:
+        - Movies are filtered by genre
+        - Movies are properly paginated
+        - Correct movie data is returned
+        """
+        response = self.client.get("/api/movies/genres/action/movies/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertEqual(len(response.data["results"]), 1)
+
+        movie = response.data["results"][0]
+        self.assertEqual(movie["title"], "Fight Club")
+
+    def test_genre_movies_endpoint_not_found(self):
+        """
+        Test GET /api/movies/genres/{invalid_slug}/movies/ returns 404.
+
+        Ensures proper error handling for non-existent genres.
+        """
+        response = self.client.get("/api/movies/genres/invalid-genre/movies/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
