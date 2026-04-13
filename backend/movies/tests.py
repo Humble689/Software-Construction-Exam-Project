@@ -174,3 +174,208 @@ class PersonModelTestCase(TestCase):
         self.assertEqual(people[0].name, "Akira Kurosawa")
         self.assertEqual(people[1].name, "Frank Capra")
 
+
+class MovieModelTestCase(TestCase):
+    """Test suite for the Movie model."""
+
+    def setUp(self):
+        """Create test movie with genres and relationships."""
+        self.genre_action = Genre.objects.create(
+            tmdb_id=28,
+            name="Action",
+            slug="action"
+        )
+        self.genre_drama = Genre.objects.create(
+            tmdb_id=18,
+            name="Drama",
+            slug="drama"
+        )
+        self.director = Person.objects.create(
+            tmdb_id=1,
+            name="Christopher Nolan",
+            known_for_department="Directing"
+        )
+        self.movie = Movie.objects.create(
+            tmdb_id=550,
+            imdb_id="tt0137523",
+            title="Fight Club",
+            overview="An insomniac office worker and a devil-may-care soapmaker form an underground fight club.",
+            release_date=date(1999, 10, 15),
+            vote_average=8.8,
+            vote_count=1500000,
+            popularity=86.5,
+            poster_path="/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
+            backdrop_path="/fCayJrkAFtVM5BKcyxBj98Vrocz.jpg",
+            runtime=139,
+            budget=63000000,
+            revenue=100853753,
+            trailer_key="BdJKm16Co6M"
+        )
+        self.movie.genres.add(self.genre_action, self.genre_drama)
+        self.movie.directors.add(self.director)
+
+    def test_movie_model_creation(self):
+        """
+        Test Movie model creation with all core fields.
+
+        Ensures:
+        - All required and optional fields are properly stored
+        - __str__ returns title with release year
+        - Numeric fields (vote_average, popularity) store correctly
+        """
+        movie = Movie.objects.get(tmdb_id=550)
+        self.assertEqual(movie.title, "Fight Club")
+        self.assertEqual(movie.vote_average, 8.8)
+        self.assertEqual(movie.runtime, 139)
+        self.assertEqual(str(movie), "Fight Club (1999)")
+
+    def test_movie_genre_relationship(self):
+        """
+        Test many-to-many relationship between Movie and Genre.
+
+        Ensures:
+        - Genres can be added and retrieved via reverse relation
+        - Multiple genres can be associated with one movie
+        """
+        genres = self.movie.genres.all()
+        self.assertEqual(genres.count(), 2)
+        self.assertIn(self.genre_action, genres)
+        self.assertIn(self.genre_drama, genres)
+
+    def test_movie_directors_relationship(self):
+        """
+        Test many-to-many relationship between Movie and directors.
+
+        Ensures:
+        - Directors can be associated with movies
+        - Reverse relation allows querying director's movies
+        """
+        self.assertEqual(self.movie.directors.count(), 1)
+        self.assertIn(self.director, self.movie.directors.all())
+        self.assertIn(self.movie, self.director.directed_movies.all())
+
+    def test_movie_poster_url_property(self):
+        """
+        Test the poster_url property constructs correct TMDB image URL.
+
+        This is essential for displaying movie posters in the UI.
+        Uses w500 size by default for full displays.
+        """
+        from django.conf import settings
+        poster_url = self.movie.poster_url
+        self.assertIn("w500", poster_url)
+        self.assertIn(self.movie.poster_path, poster_url)
+        self.assertIn(settings.TMDB_IMAGE_BASE_URL, poster_url)
+
+    def test_movie_poster_url_small_property(self):
+        """
+        Test the poster_url_small property for thumbnail displays.
+
+        Uses w185 size for compact list views to reduce bandwidth.
+        """
+        from django.conf import settings
+        poster_url_small = self.movie.poster_url_small
+        self.assertIn("w185", poster_url_small)
+        self.assertIn(self.movie.poster_path, poster_url_small)
+
+    def test_movie_backdrop_url_property(self):
+        """
+        Test the backdrop_url property for hero images.
+
+        Uses w1280 size for full-width background images.
+        """
+        from django.conf import settings
+        backdrop_url = self.movie.backdrop_url
+        self.assertIn("w1280", backdrop_url)
+        self.assertIn(self.movie.backdrop_path, backdrop_url)
+
+    def test_movie_trailer_url_property(self):
+        """
+        Test the trailer_url property constructs YouTube watch URL.
+
+        Allows embedding YouTube trailers in the UI.
+        """
+        trailer_url = self.movie.trailer_url
+        self.assertEqual(trailer_url, f"https://www.youtube.com/watch?v={self.movie.trailer_key}")
+
+    def test_movie_trailer_embed_url_property(self):
+        """
+        Test the trailer_embed_url property for iframe embedding.
+
+        Constructs the correct embed URL for <iframe> elements.
+        """
+        embed_url = self.movie.trailer_embed_url
+        self.assertEqual(embed_url, f"https://www.youtube.com/embed/{self.movie.trailer_key}")
+
+    def test_movie_without_poster(self):
+        """
+        Test that poster_url returns None when poster_path is empty.
+
+        Handles gracefully when TMDB has no poster for a movie.
+        """
+        movie = Movie.objects.create(
+            tmdb_id=999,
+            title="Movie Without Poster",
+            poster_path="",
+            release_date=date(2020, 1, 1)
+        )
+        self.assertIsNone(movie.poster_url)
+        self.assertIsNone(movie.poster_url_small)
+
+    def test_movie_without_trailer(self):
+        """
+        Test that trailer URLs return None when trailer_key is empty.
+
+        Most older movies don't have trailer keys, so this must be handled.
+        """
+        movie = Movie.objects.create(
+            tmdb_id=1000,
+            title="Old Movie",
+            trailer_key="",
+            release_date=date(1960, 1, 1)
+        )
+        self.assertIsNone(movie.trailer_url)
+        self.assertIsNone(movie.trailer_embed_url)
+
+    def test_movie_str_without_release_date(self):
+        """
+        Test __str__ returns 'N/A' for year when release_date is None.
+
+        Handles movies with unknown release dates gracefully.
+        """
+        movie = Movie.objects.create(
+            tmdb_id=1001,
+            title="Movie Without Date",
+            release_date=None
+        )
+        self.assertEqual(str(movie), "Movie Without Date (N/A)")
+
+    def test_movie_default_ordering(self):
+        """
+        Test that movies are ordered by popularity descending.
+
+        This ensures trending/popular movies appear first in list views.
+        """
+        movie2 = Movie.objects.create(
+            tmdb_id=551,
+            title="Less Popular Movie",
+            popularity=50.0,
+            release_date=date(2010, 1, 1)
+        )
+        movies = list(Movie.objects.all())
+        self.assertEqual(movies[0].title, "Fight Club")  # popularity 86.5
+        self.assertEqual(movies[1].title, "Less Popular Movie")  # popularity 50.0
+
+    def test_movie_tmdb_id_uniqueness(self):
+        """
+        Test that TMDB IDs prevent duplicate movie records.
+
+        Critical for maintaining a single source of truth for each movie.
+        """
+        with self.assertRaises(Exception):
+            Movie.objects.create(
+                tmdb_id=550,  # Duplicate
+                title="Fight Club Again",
+                release_date=date(1999, 10, 15)
+            )
+
