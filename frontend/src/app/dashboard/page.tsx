@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -227,12 +229,11 @@ export default function DashboardPage() {
                 className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/[0.04]"
               >
                 <div className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
-                    item.interaction_type === "like" ? "bg-emerald-500/15 text-emerald-400" :
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${item.interaction_type === "like" ? "bg-emerald-500/15 text-emerald-400" :
                     item.interaction_type === "dislike" ? "bg-red-500/15 text-red-400" :
-                    item.interaction_type === "watched" ? "bg-blue-500/15 text-blue-400" :
-                    "bg-white/5 text-white/40"
-                  }`}>
+                      item.interaction_type === "watched" ? "bg-blue-500/15 text-blue-400" :
+                        "bg-white/5 text-white/40"
+                    }`}>
                     {item.interaction_type}
                   </span>
                   <span className="text-sm text-white/70">{item.movie_title}</span>
