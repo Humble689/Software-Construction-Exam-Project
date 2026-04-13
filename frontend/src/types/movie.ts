@@ -1,3 +1,4 @@
+// Type definitions for CineQuest movie data structures
 export interface Genre {
   id: number;
   tmdb_id: number;
