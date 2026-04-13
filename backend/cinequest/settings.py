@@ -1,15 +1,36 @@
+
+
+
+
+
+
+
+# cinequest/settings.py
+
+
+"""
+Django settings for CineQuest project.
+
+This module contains all configuration for the Django backend,
+including database, REST framework, CORS, JWT, caching, and TMDB API settings.
+Environment variables are loaded from a .env file using python-dotenv.
+"""
+
 from pathlib import Path
 import os
-import dj_database_url
 from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
 
-
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-hardcoded-key-change-me-please-12345'
+# SECURITY: Secret key loaded from environment variable, not hardcoded
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-dev-only-change-in-production'
+)
 
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
@@ -26,7 +47,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "django_filters",
-    "movie.apps.MoviesConfig",
+    "movies.apps.MoviesConfig",
     "recommendations.apps.RecommendationsConfig",
     "users.apps.UsersConfig",
 ]
@@ -34,6 +55,9 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # CORS middleware MUST be placed before CommonMiddleware
+    # BUG FIX: This was completely missing, causing all frontend requests to be blocked
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -132,6 +156,8 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+# Logging configuration to output to console with timestamps and log levels
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

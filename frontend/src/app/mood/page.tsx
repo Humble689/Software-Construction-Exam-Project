@@ -1,3 +1,4 @@
+// Mood picker page client component
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
