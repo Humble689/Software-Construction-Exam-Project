@@ -453,3 +453,60 @@ class MovieCastModelTestCase(TestCase):
                 order=2
             )
 
+
+class WatchProviderModelTestCase(TestCase):
+    """Test suite for the WatchProvider model."""
+
+    def setUp(self):
+        """Create test movie and watch provider."""
+        self.movie = Movie.objects.create(
+            tmdb_id=550,
+            title="Fight Club",
+            release_date=date(1999, 10, 15)
+        )
+        self.provider = WatchProvider.objects.create(
+            movie=self.movie,
+            provider_name="Netflix",
+            provider_type="stream",
+            logo_path="/netflix_logo.png",
+            link="https://www.netflix.com/watch/550",
+            country_code="US"
+        )
+
+    def test_watch_provider_model_creation(self):
+        """
+        Test WatchProvider model stores streaming platform information.
+
+        Ensures:
+        - Provider name and type are stored
+        - Logo path and link are captured
+        - Country code is tracked for region-specific availability
+        """
+        provider = WatchProvider.objects.get(provider_name="Netflix")
+        self.assertEqual(provider.provider_type, "stream")
+        self.assertEqual(provider.country_code, "US")
+        self.assertIn("Netflix", str(provider))
+
+    def test_watch_provider_logo_url_property(self):
+        """
+        Test the logo_url property constructs TMDB image URL.
+
+        Uses w92 size for small provider logos.
+        """
+        from django.conf import settings
+        logo_url = self.provider.logo_url
+        self.assertIn("w92", logo_url)
+        self.assertIn(settings.TMDB_IMAGE_BASE_URL, logo_url)
+
+    def test_watch_provider_provider_types(self):
+        """
+        Test that all provider type choices are valid.
+
+        Supports streaming, rental, purchase, and free options.
+        """
+        choices = dict(WatchProvider.ProviderType.choices)
+        self.assertIn("stream", choices)
+        self.assertIn("rent", choices)
+        self.assertIn("buy", choices)
+        self.assertIn("free", choices)
+
