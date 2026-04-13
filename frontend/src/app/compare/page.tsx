@@ -11,6 +11,8 @@ import { moviesAPI } from "@/lib/api";
 import { posterUrl, formatRuntime, formatCurrency, ratingColor } from "@/lib/utils";
 import type { MovieCompact } from "@/types/movie";
 
+
+
 export default function ComparePage() {
   const [searchA, setSearchA] = useState("");
   const [searchB, setSearchB] = useState("");
