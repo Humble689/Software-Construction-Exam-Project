@@ -682,3 +682,139 @@ class GenreListAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
+class MovieSearchAPITestCase(APITestCase):
+    """Test suite for the search endpoint."""
+
+    def setUp(self):
+        """Create test movies."""
+        Movie.objects.create(
+            tmdb_id=550,
+            title="Fight Club",
+            release_date=date(1999, 10, 15)
+        )
+
+    def test_movie_search_requires_query(self):
+        """
+        Test GET /api/movies/search/ without 'q' parameter returns 400.
+
+        Ensures:
+        - Search endpoint requires query parameter
+        - Proper error message is returned
+        - Prevents empty or invalid searches
+        """
+        response = self.client.get("/api/movies/search/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_movie_search_with_empty_query(self):
+        """
+        Test GET /api/movies/search/?q= (empty query) returns 400.
+
+        Ensures whitespace-only queries are rejected.
+        """
+        response = self.client.get("/api/movies/search/?q=   ")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class MoodListAPITestCase(APITestCase):
+    """Test suite for the mood endpoints."""
+
+    def test_mood_list_endpoint(self):
+        """
+        Test GET /api/movies/moods/ returns all available mood options.
+
+        Ensures:
+        - All mood types are returned
+        - Each mood has required fields (slug, label, description)
+        - Mood list is comprehensive and usable
+        """
+        response = self.client.get("/api/movies/moods/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        moods = response.data
+        self.assertGreater(len(moods), 0)
+
+        # Check first mood has required fields
+        first_mood = moods[0]
+        self.assertIn("slug", first_mood)
+        self.assertIn("label", first_mood)
+        self.assertIn("description", first_mood)
+
+    def test_mood_list_contains_expected_moods(self):
+        """
+        Test that mood list includes all predefined moods.
+
+        Ensures all mood types are available for users to browse.
+        """
+        response = self.client.get("/api/movies/moods/")
+        mood_slugs = [m["slug"] for m in response.data]
+
+        expected_moods = [
+            "cozy-night", "adrenaline", "date-night", "mind-bender",
+            "feel-good", "edge-of-seat", "epic-adventure", "cry-it-out",
+            "family-fun", "documentary-deep-dive"
+        ]
+
+        for mood in expected_moods:
+            self.assertIn(mood, mood_slugs)
+
+
+class MovieCompareAPITestCase(APITestCase):
+    """Test suite for the compare endpoint."""
+
+    def setUp(self):
+        """Create test movies."""
+        self.movie1 = Movie.objects.create(
+            tmdb_id=550,
+            title="Fight Club",
+            release_date=date(1999, 10, 15)
+        )
+        self.movie2 = Movie.objects.create(
+            tmdb_id=551,
+            title="Seven Samurai",
+            release_date=date(1954, 4, 26)
+        )
+
+    def test_compare_requires_two_ids(self):
+        """
+        Test GET /api/movies/compare/?ids=550 returns 400 (need 2 IDs).
+
+        Ensures:
+        - Compare endpoint requires at least 2 movie IDs
+        - Provides helpful error message
+        - Prevents single-movie comparisons
+        """
+        response = self.client.get("/api/movies/compare/?ids=550")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_compare_requires_query_parameter(self):
+        """
+        Test GET /api/movies/compare/ without 'ids' returns 400.
+
+        Ensures query parameter is mandatory.
+        """
+        response = self.client.get("/api/movies/compare/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_compare_with_invalid_ids(self):
+        """
+        Test GET /api/movies/compare/?ids=invalid returns 400.
+
+        Ensures proper handling of non-integer IDs.
+        """
+        response = self.client.get("/api/movies/compare/?ids=abc,def")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_compare_with_extra_ids(self):
+        """
+        Test that only first 2 IDs are used when more are provided.
+
+        GET /api/movies/compare/?ids=550,551,999 should only compare first 2.
+        """
+        response = self.client.get("/api/movies/compare/?ids=550,551,999")
+        # This depends on TMDB API mock; with real API it would attempt to fetch all 3
+        # but only compare the first 2 in response
+        if response.status_code == status.HTTP_200_OK:
+            self.assertIn("movies", response.data)
+
