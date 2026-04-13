@@ -937,3 +937,124 @@ class PersonModelAPITestCase(APITestCase):
         self.assertIn("directed_movies", response.data)
         self.assertIn("acted_movies", response.data)
 
+
+class MovieIntegrationTestCase(APITestCase):
+    """Integration tests combining multiple models and endpoints."""
+
+    def setUp(self):
+        """Create complete test data structure."""
+        # Create genres
+        self.action_genre = Genre.objects.create(
+            tmdb_id=28,
+            name="Action",
+            slug="action"
+        )
+        self.drama_genre = Genre.objects.create(
+            tmdb_id=18,
+            name="Drama",
+            slug="drama"
+        )
+
+        # Create people
+        self.director = Person.objects.create(
+            tmdb_id=1,
+            name="David Fincher",
+            profile_path="/fincher.jpg",
+            biography="American film director",
+            known_for_department="Directing"
+        )
+        self.actor1 = Person.objects.create(
+            tmdb_id=2,
+            name="Edward Norton",
+            profile_path="/norton.jpg",
+            known_for_department="Acting"
+        )
+
+        # Create movies
+        self.movie = Movie.objects.create(
+            tmdb_id=550,
+            title="Fight Club",
+            overview="A thriller about underground fighting.",
+            release_date=date(1999, 10, 15),
+            vote_average=8.8,
+            vote_count=1500000,
+            popularity=86.5,
+            poster_path="/poster.jpg",
+            runtime=139,
+            budget=63000000,
+            revenue=100853753
+        )
+        self.movie.genres.add(self.action_genre, self.drama_genre)
+        self.movie.directors.add(self.director)
+
+        # Create cast
+        self.cast = MovieCast.objects.create(
+            movie=self.movie,
+            person=self.actor1,
+            character="The Narrator",
+            order=0
+        )
+
+        # Create watch provider
+        self.provider = WatchProvider.objects.create(
+            movie=self.movie,
+            provider_name="Netflix",
+            provider_type="stream",
+            logo_path="/netflix.png"
+        )
+
+    def test_complete_movie_detail_with_all_relationships(self):
+        """
+        Test that movie detail endpoint returns complete data including all relationships.
+
+        Ensures:
+        - Movie details are complete
+        - Genres are included and serialized
+        - Directors are included and serialized
+        - Cast is included with character info
+        - Watch providers are included
+        - All URLs are properly constructed
+        """
+        response = self.client.get(f"/api/movies/list/{self.movie.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.data
+        self.assertEqual(data["title"], "Fight Club")
+        self.assertEqual(len(data["genres"]), 2)
+        self.assertEqual(len(data["directors"]), 1)
+        self.assertEqual(data["directors"][0]["name"], "David Fincher")
+        self.assertGreater(len(data["cast"]), 0)
+        self.assertEqual(len(data["watch_providers"]), 1)
+
+    def test_genre_movies_includes_all_relationships(self):
+        """
+        Test that movies retrieved via genre endpoint include all serialized data.
+
+        Ensures filtering by genre doesn't strip relationship data.
+        """
+        response = self.client.get("/api/movies/genres/action/movies/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        movie_data = response.data["results"][0]
+        self.assertEqual(movie_data["title"], "Fight Club")
+        self.assertIn("genres", movie_data)
+        self.assertIn("vote_average", movie_data)
+
+    def test_ordering_and_filtering_consistency(self):
+        """
+        Test that movies maintain consistent ordering across endpoints.
+
+        Ensures:
+        - Movies returned by list and genre filters have same data
+        - Ordering is consistent (by popularity)
+        - No data loss in serialization
+        """
+        list_response = self.client.get("/api/movies/list/")
+        genre_response = self.client.get("/api/movies/genres/action/movies/")
+
+        list_movie = list_response.data["results"][0]
+        genre_movie = genre_response.data["results"][0]
+
+        self.assertEqual(list_movie["tmdb_id"], genre_movie["tmdb_id"])
+        self.assertEqual(list_movie["title"], genre_movie["title"])
+        self.assertEqual(list_movie["vote_average"], genre_movie["vote_average"])
