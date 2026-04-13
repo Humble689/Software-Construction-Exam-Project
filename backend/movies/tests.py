@@ -379,3 +379,77 @@ class MovieModelTestCase(TestCase):
                 release_date=date(1999, 10, 15)
             )
 
+
+class MovieCastModelTestCase(TestCase):
+    """Test suite for the MovieCast through model."""
+
+    def setUp(self):
+        """Create test movie and cast relationship."""
+        self.movie = Movie.objects.create(
+            tmdb_id=550,
+            title="Fight Club",
+            release_date=date(1999, 10, 15)
+        )
+        self.actor1 = Person.objects.create(
+            tmdb_id=819,
+            name="Edward Norton",
+            known_for_department="Acting"
+        )
+        self.actor2 = Person.objects.create(
+            tmdb_id=287,
+            name="Brad Pitt",
+            known_for_department="Acting"
+        )
+        self.cast1 = MovieCast.objects.create(
+            movie=self.movie,
+            person=self.actor1,
+            character="The Narrator",
+            order=0
+        )
+        self.cast2 = MovieCast.objects.create(
+            movie=self.movie,
+            person=self.actor2,
+            character="Tyler Durden",
+            order=1
+        )
+
+    def test_movie_cast_model_creation(self):
+        """
+        Test MovieCast through model stores actor, character, and billing order.
+
+        Ensures:
+        - Cast relationships are properly created
+        - Character names are stored
+        - Billing order is tracked for proper display
+        - __str__ returns readable cast information
+        """
+        cast = MovieCast.objects.get(order=0)
+        self.assertEqual(cast.person.name, "Edward Norton")
+        self.assertEqual(cast.character, "The Narrator")
+        self.assertIn("Edward Norton", str(cast))
+        self.assertIn("The Narrator", str(cast))
+
+    def test_movie_cast_ordering(self):
+        """
+        Test that cast is ordered by billing position.
+
+        Ensures main actors appear first in cast lists.
+        """
+        cast_list = list(self.movie.cast.through.objects.filter(movie=self.movie))
+        self.assertEqual(cast_list[0].order, 0)
+        self.assertEqual(cast_list[1].order, 1)
+
+    def test_movie_cast_unique_constraint(self):
+        """
+        Test unique_together constraint on (movie, person, character).
+
+        Prevents duplicate cast entries for the same role in a movie.
+        """
+        with self.assertRaises(Exception):
+            MovieCast.objects.create(
+                movie=self.movie,
+                person=self.actor1,
+                character="The Narrator",  # Duplicate
+                order=2
+            )
+
