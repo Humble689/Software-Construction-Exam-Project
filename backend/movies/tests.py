@@ -510,3 +510,89 @@ class WatchProviderModelTestCase(TestCase):
         self.assertIn("buy", choices)
         self.assertIn("free", choices)
 
+
+
+class MovieListAPITestCase(APITestCase):
+    """Test suite for the movie list and detail endpoints."""
+
+    def setUp(self):
+        """Create test movies for API testing."""
+        self.genre = Genre.objects.create(
+            tmdb_id=28,
+            name="Action",
+            slug="action"
+        )
+        self.movie1 = Movie.objects.create(
+            tmdb_id=550,
+            title="Fight Club",
+            overview="An insomniac office worker forms an underground fight club.",
+            release_date=date(1999, 10, 15),
+            vote_average=8.8,
+            vote_count=1500000,
+            popularity=86.5,
+            poster_path="/poster1.jpg"
+        )
+        self.movie1.genres.add(self.genre)
+
+        self.movie2 = Movie.objects.create(
+            tmdb_id=551,
+            title="Seven Samurai",
+            overview="Seven samurai are hired to protect a village.",
+            release_date=date(1954, 4, 26),
+            vote_average=8.6,
+            vote_count=500000,
+            popularity=45.3,
+            poster_path="/poster2.jpg"
+        )
+        self.movie2.genres.add(self.genre)
+
+    def test_movie_list_endpoint(self):
+        """
+        Test GET /api/movies/list/ returns paginated movie list with 200 status.
+
+        Ensures:
+        - Endpoint is accessible
+        - Returns paginated results
+        - Movie data is properly serialized (title, vote_average, genres, etc.)
+        - Respects default pagination settings
+        """
+        response = self.client.get("/api/movies/list/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertGreaterEqual(len(response.data["results"]), 2)
+
+        # Check first movie data structure
+        first_movie = response.data["results"][0]
+        self.assertIn("id", first_movie)
+        self.assertIn("title", first_movie)
+        self.assertIn("vote_average", first_movie)
+        self.assertIn("genres", first_movie)
+
+    def test_movie_detail_endpoint(self):
+        """
+        Test GET /api/movies/list/{id}/ returns full movie details with 200 status.
+
+        Ensures:
+        - Movie detail endpoint is accessible by pk
+        - Returns complete movie information (genres, directors, cast, etc.)
+        - Properly serializes relationships
+        """
+        response = self.client.get(f"/api/movies/list/{self.movie1.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.data
+        self.assertEqual(data["title"], "Fight Club")
+        self.assertEqual(data["tmdb_id"], 550)
+        self.assertEqual(data["vote_average"], 8.8)
+        self.assertIn("genres", data)
+        self.assertEqual(len(data["genres"]), 1)
+
+    def test_movie_detail_endpoint_not_found(self):
+        """
+        Test GET /api/movies/list/{invalid_id}/ returns 404.
+
+        Ensures proper error handling for non-existent movies.
+        """
+        response = self.client.get("/api/movies/list/9999/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
