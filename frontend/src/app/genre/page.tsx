@@ -1,3 +1,4 @@
+/* GenresPage.tsx  */
 "use client";
 
 import GenreGrid from "@/components/GenreGrid";

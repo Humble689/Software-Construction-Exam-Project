@@ -1,6 +1,4 @@
 
-
-# comment: views.py - Defines API endpoints for movies, genres, people, and related data.
 import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
@@ -20,8 +18,14 @@ logger = logging.getLogger(__name__)
 tmdb = TMDBService()
 sync_service = MovieSyncService()
 
-## Movie ViewSet
 class MovieViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for listing and retrieving locally-synced movies.
+
+    Supports filtering by genre slug and provides additional
+    actions for TMDB recommendations, similar movies, and
+    Wikipedia enrichment.
+    """
     queryset = Movie.objects.prefetch_related("genres", "directors").all()
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend]
@@ -125,9 +129,16 @@ class PersonViewSet(viewsets.ReadOnlyModelViewSet):
 
 ## standalone endpoints
 
-@api_view(["POST"])
+@api_view(["GET"])
 @permission_classes([AllowAny])
 def search_movies(request):
+    """
+    GET /api/movies/search/?q=<query>&page=<page>
+
+    Search movies via the TMDB API by title.
+    BUG FIX: Changed from POST to GET — search is a read operation
+    and the frontend sends GET requests.
+    """
     query = request.query_params.get("q", "").strip()
     page = int(request.query_params.get("page", 1))
 
@@ -150,9 +161,15 @@ def search_movies(request):
     })
 
 
-@api_view(["POST"])
+@api_view(["GET"])
 @permission_classes([AllowAny])
 def trending_movies(request):
+    """
+    GET /api/movies/trending/?window=<day|week>&page=<page>
+
+    Fetch trending movies from TMDB.
+    BUG FIX: Changed from POST to GET — fetching data is a read operation.
+    """
     window = request.query_params.get("window", "week")
     page = int(request.query_params.get("page", 1))
 
@@ -170,29 +187,52 @@ def trending_movies(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def now_playing(request):
-    p = int(request.query_params.get("page", 1))
-    d = tmdb.get_now_playing(page=p)
-    r = d.get("results", [])
-    s = TMDBMovieSerializer(r, many=True)
-    x = {"results": s.data, "page": p}
-    return Response(x)
+    """
+    GET /api/movies/now-playing/?page=<page>
+
+    Fetch movies currently in theatres from TMDB.
+    REFACTORED: Renamed cryptic variables (p,d,r,s,x) to descriptive names.
+    """
+    page = int(request.query_params.get("page", 1))
+    data = tmdb.get_now_playing(page=page)
+    results = data.get("results", [])
+    serializer = TMDBMovieSerializer(results, many=True)
+    return Response({
+        "results": serializer.data,
+        "total_pages": data.get("total_pages", 1),
+        "page": page,
+    })
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def top_rated(request):
-    p = int(request.query_params.get("page", 1))
-    d = tmdb.get_top_rated_movies(page=p)
-    r = d.get("results", [])
-    s = TMDBMovieSerializer(r, many=True)
-    x = {"results": s.data, "page": p}
-    return Response(x)
+    """
+    GET /api/movies/top-rated/?page=<page>
+
+    Fetch highest-rated movies of all time from TMDB.
+    REFACTORED: Renamed cryptic variables (p,d,r,s,x) to descriptive names.
+    """
+    page = int(request.query_params.get("page", 1))
+    data = tmdb.get_top_rated_movies(page=page)
+    results = data.get("results", [])
+    serializer = TMDBMovieSerializer(results, many=True)
+    return Response({
+        "results": serializer.data,
+        "total_pages": data.get("total_pages", 1),
+        "page": page,
+    })
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def movie_detail_tmdb(request, tmdb_id):
+    """
+    GET /api/movies/tmdb/<tmdb_id>/?sync=true|false
 
+    Fetch full movie details directly from TMDB API.
+    If sync=true, also saves the movie to the local database.
+    """
     sync = request.query_params.get("sync", "false").lower() == "true"
 
     if sync:
@@ -390,16 +430,23 @@ def discover_filtered(request):
     })
 
 
-## movie comparison
-
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def compare_movies(request):
+    """
+    GET /api/movies/compare/?ids=550,680
+
+    Compare two movies side-by-side by fetching full details from TMDB.
+    Returns both movie objects for the frontend to render a comparison view.
+    """
     ids_str = request.query_params.get("ids", "")
     ids = [int(i.strip()) for i in ids_str.split(",") if i.strip().isdigit()]
 
     if len(ids) < 2:
-        return Response({"error": "Provide at least 2 TMDB IDs: ?ids=550,680"}, status=400)
+        return Response(
+            {"error": "Provide at least 2 TMDB IDs: ?ids=550,680"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     movies = []
     for tmdb_id in ids[:2]:
@@ -408,27 +455,13 @@ def compare_movies(request):
             movies.append(data)
 
     if len(movies) < 2:
-        return Response({"error": "Could not fetch both movies"}, status=404)
+        return Response(
+            {"error": "Could not fetch both movies"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     return Response({"movies": movies})
 
 
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def compare_two_movies(request):
-    id_string = request.query_params.get("ids", "")
-    movie_ids = [int(i.strip()) for i in id_string.split(",") if i.strip().isdigit()]
-
-    if len(movie_ids) < 2:
-        return Response({"error": "Provide at least 2 TMDB IDs: ?ids=550,680"}, status=400)
-
-    movie_list = []
-    for tid in movie_ids[:2]:
-        result = tmdb.get_movie_details(tid)
-        if result and "id" in result:
-            movie_list.append(result)
-
-    if len(movie_list) < 2:
-        return Response({"error": "Could not fetch both movies"}, status=404)
-
-    return Response({"movies": movie_list})
+## REMOVED: compare_two_movies was an exact duplicate of compare_movies above.
+## This is a code smell (DRY violation). The single compare_movies view handles all comparison logic.

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -21,7 +22,7 @@ export default function PersonalizedSection({ movies }: PersonalizedSectionProps
         {/* Background decoration */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-gold/[0.04] to-transparent rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-gradient-to-tr from-accent/[0.03] to-transparent rounded-full -translate-x-1/3 translate-y-1/3 pointer-events-none" />
-        
+
         {/* Top shine line */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/20 to-transparent" />
 
