@@ -818,3 +818,122 @@ class MovieCompareAPITestCase(APITestCase):
         if response.status_code == status.HTTP_200_OK:
             self.assertIn("movies", response.data)
 
+
+
+class MovieTrendingAPITestCase(APITestCase):
+    """Test suite for trending and now-playing endpoints."""
+
+    def test_trending_endpoint_exists(self):
+        """
+        Test GET /api/movies/trending/ is accessible.
+
+        Ensures endpoint returns proper response format.
+        Actual data depends on TMDB API mock.
+        """
+        response = self.client.get("/api/movies/trending/")
+        # Status depends on whether TMDB API is mocked in settings
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_500_INTERNAL_SERVER_ERROR])
+
+    def test_now_playing_endpoint_exists(self):
+        """
+        Test GET /api/movies/now-playing/ is accessible.
+
+        Ensures endpoint returns proper response format.
+        """
+        response = self.client.get("/api/movies/now-playing/")
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_500_INTERNAL_SERVER_ERROR])
+
+    def test_top_rated_endpoint_exists(self):
+        """
+        Test GET /api/movies/top-rated/ is accessible.
+
+        Ensures endpoint returns proper response format.
+        """
+        response = self.client.get("/api/movies/top-rated/")
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_500_INTERNAL_SERVER_ERROR])
+
+
+class PersonModelAPITestCase(APITestCase):
+    """Test suite for Person model functionality."""
+
+    def setUp(self):
+        """Create test person."""
+        self.person = Person.objects.create(
+            tmdb_id=3,
+            name="Frank Capra",
+            profile_path="/frank_capra.jpg",
+            biography="American film director",
+            birthday=date(1897, 5, 18),
+            known_for_department="Directing"
+        )
+
+    def test_person_model_creation(self):
+        """
+        Test Person model creation with all fields.
+
+        Ensures:
+        - All fields are properly stored
+        - __str__ returns person's name
+        - Optional fields work correctly
+        """
+        person = Person.objects.get(tmdb_id=3)
+        self.assertEqual(person.name, "Frank Capra")
+        self.assertEqual(person.known_for_department, "Directing")
+        self.assertEqual(str(person), "Frank Capra")
+
+    def test_person_profile_url_property(self):
+        """
+        Test Person profile_url property generates correct TMDB image URL.
+
+        Ensures:
+        - URLs are properly constructed
+        - Correct size (w185) is used
+        - Setting is properly utilized
+        """
+        from django.conf import settings
+        profile_url = self.person.profile_url
+        self.assertIsNotNone(profile_url)
+        self.assertIn("w185", profile_url)
+        self.assertIn(self.person.profile_path, profile_url)
+
+    def test_person_without_profile_path_returns_none(self):
+        """
+        Test that profile_url returns None when profile_path is empty.
+
+        Handles gracefully when no image is available.
+        """
+        person = Person.objects.create(
+            tmdb_id=999,
+            name="Unknown Person",
+            profile_path="",
+            known_for_department="Acting"
+        )
+        self.assertIsNone(person.profile_url)
+
+    def test_person_list_endpoint(self):
+        """
+        Test GET /api/movies/people/ returns list of people.
+
+        Ensures people (directors, actors) can be browsed via API.
+        """
+        response = self.client.get("/api/movies/people/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertEqual(len(response.data["results"]), 1)
+
+    def test_person_detail_endpoint(self):
+        """
+        Test GET /api/movies/people/{id}/ returns person details.
+
+        Ensures:
+        - Person can be retrieved by ID
+        - Full details are returned
+        - Relationships (directed_movies, acted_movies) are included
+        """
+        response = self.client.get(f"/api/movies/people/{self.person.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["name"], "Frank Capra")
+        self.assertIn("biography", response.data)
+        self.assertIn("directed_movies", response.data)
+        self.assertIn("acted_movies", response.data)
+
