@@ -6,6 +6,7 @@ import type { User } from "@/types/movie";
 
 
 
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
