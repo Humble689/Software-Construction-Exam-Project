@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes

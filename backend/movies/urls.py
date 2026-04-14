@@ -1,3 +1,5 @@
+# comment: urls.py - Defines URL patterns for movie-related API endpoints using DRF viewsets and custom views.
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
