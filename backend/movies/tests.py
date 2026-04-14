@@ -511,7 +511,6 @@ class WatchProviderModelTestCase(TestCase):
         self.assertIn("free", choices)
 
 
-
 class MovieListAPITestCase(APITestCase):
     """Test suite for the movie list and detail endpoints."""
 
@@ -817,7 +816,6 @@ class MovieCompareAPITestCase(APITestCase):
         # but only compare the first 2 in response
         if response.status_code == status.HTTP_200_OK:
             self.assertIn("movies", response.data)
-
 
 
 class MovieTrendingAPITestCase(APITestCase):
