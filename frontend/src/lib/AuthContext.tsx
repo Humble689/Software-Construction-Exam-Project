@@ -4,6 +4,9 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { authAPI, setTokens, loadTokens, clearTokens } from "@/lib/api";
 import type { User } from "@/types/movie";
 
+
+
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
